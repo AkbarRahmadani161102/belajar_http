@@ -1,45 +1,151 @@
-// ignore_for_file: unused_import
-
 import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as htt;
+import 'package:http/http.dart' as http;
 
-Future<List<Cat>> fetchRandomCat() async {
-  final response = await http.get(
-    Uri.parse('https://api.thecatapi.com/v1/images/search'),
-  );
+Future<ListCourseResponse> fetchCourseList() {
+  return http
+      .get(Uri.parse('http://10.0.2.2:1337/api/courses'))
+      .then((response) => response.body)
+      .then((body) => ListCourseResponse.fromJson(json.decode(body)))
+      .catchError((error) => throw Exception('Failed to load album'));
+}
 
-  if (response.statusCode == 200) {
-    return List<Cat>.from(
-      json.decode(response.body).map((cat) => Cat.fromJson(cat)),
-    );
-  } else {
-    throw Exception('Failed to load cat');
+class ListCourseResponse {
+  List<Data>? data;
+  Meta? meta;
+
+  ListCourseResponse({this.data, this.meta});
+
+  ListCourseResponse.fromJson(Map<String, dynamic> json) {
+    if (json['data'] != null) {
+      data = <Data>[];
+      json['data'].forEach((v) {
+        data!.add(new Data.fromJson(v));
+      });
+    }
+    meta = json['meta'] != null ? new Meta.fromJson(json['meta']) : null;
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    if (this.data != null) {
+      data['data'] = this.data!.map((v) => v.toJson()).toList();
+    }
+    if (this.meta != null) {
+      data['meta'] = this.meta!.toJson();
+    }
+    return data;
   }
 }
 
-class Cat {
-  final String id;
-  final String url;
-  final int width;
-  final int height;
+class Data {
+  int? id;
+  Attributes? attributes;
 
-  Cat({
-    required this.id,
-    required this.url,
-    required this.width,
-    required this.height,
-  });
+  Data({this.id, this.attributes});
 
-  factory Cat.fromJson(Map<String, dynamic> json) {
-    return Cat(
-      id: json['id'],
-      url: json['url'],
-      width: json['width'],
-      height: json['heigt'],
-    );
+  Data.fromJson(Map<String, dynamic> json) {
+    id = json['id'];
+    attributes = json['attributes'] != null
+        ? new Attributes.fromJson(json['attributes'])
+        : null;
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['id'] = this.id;
+    if (this.attributes != null) {
+      data['attributes'] = this.attributes!.toJson();
+    }
+    return data;
+  }
+}
+
+class Attributes {
+  String? name;
+  String? description;
+  String? releaseDate;
+  bool? onSale;
+  String? createdAt;
+  String? updatedAt;
+  String? publishedAt;
+
+  Attributes(
+      {this.name,
+      this.description,
+      this.releaseDate,
+      this.onSale,
+      this.createdAt,
+      this.updatedAt,
+      this.publishedAt});
+
+  Attributes.fromJson(Map<String, dynamic> json) {
+    name = json['name'];
+    description = json['description'];
+    releaseDate = json['release_date'];
+    onSale = json['onSale'];
+    createdAt = json['createdAt'];
+    updatedAt = json['updatedAt'];
+    publishedAt = json['publishedAt'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['name'] = this.name;
+    data['description'] = this.description;
+    data['release_date'] = this.releaseDate;
+    data['onSale'] = this.onSale;
+    data['createdAt'] = this.createdAt;
+    data['updatedAt'] = this.updatedAt;
+    data['publishedAt'] = this.publishedAt;
+    return data;
+  }
+}
+
+class Meta {
+  Pagination? pagination;
+
+  Meta({this.pagination});
+
+  Meta.fromJson(Map<String, dynamic> json) {
+    pagination = json['pagination'] != null
+        ? new Pagination.fromJson(json['pagination'])
+        : null;
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    if (this.pagination != null) {
+      data['pagination'] = this.pagination!.toJson();
+    }
+    return data;
+  }
+}
+
+class Pagination {
+  int? page;
+  int? pageSize;
+  int? pageCount;
+  int? total;
+
+  Pagination({this.page, this.pageSize, this.pageCount, this.total});
+
+  Pagination.fromJson(Map<String, dynamic> json) {
+    page = json['page'];
+    pageSize = json['pageSize'];
+    pageCount = json['pageCount'];
+    total = json['total'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['page'] = this.page;
+    data['pageSize'] = this.pageSize;
+    data['pageCount'] = this.pageCount;
+    data['total'] = this.total;
+    return data;
   }
 }
 
@@ -53,11 +159,16 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  late Future<List<Cat>> futureRandomCat;
+  // late Future<Album> futureAlbum;
+  // late Future<ChukNorris> futureChuckNorris;
+  late Future<ListCourseResponse> futureCourseList;
+
   @override
   void initState() {
     super.initState();
-    futureRandomCat = fetchRandomCat();
+    // futureAlbum = fetchAlbum();
+    // futureChuckNorris = fetchChuckNorris();
+    futureCourseList = fetchCourseList();
   }
 
   @override
@@ -72,28 +183,25 @@ class _MyAppState extends State<MyApp> {
           title: const Text('Fetch Data Example'),
         ),
         body: Center(
-          child: FutureBuilder<List<Cat>>(
-            future: futureRandomCat,
+          child: FutureBuilder<ListCourseResponse>(
+            future: futureCourseList,
             builder: (context, snapshot) {
               if (snapshot.hasData) {
-                return Card(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.main,
-                    children: <Widget>[
-                      Image.network(snapshot.data![0].url),
-                      ListTile(
-                        leading: const Icon(icon.pets),
-                        title: Text(snapshot.data![0].id),
-                        subtitle: Tex(
-                          'width: ${snapshot.data![0].width} Height: ${snapshot.data![0].height}'
-                        ),
-                      ),
-                    ],
-                  ),
-                )
+                final result = snapshot.data!.data;
+                return ListView.builder(
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(result[index].attributes!.name!),
+                      subtitle: Text(result[index].attributes!.description!),
+                    );
+                  },
+                  itemCount: result!.length,
+                );
               } else if (snapshot.hasError) {
                 return Text('${snapshot.error}');
               }
+
+              // By default, show a loading spinner.
               return const CircularProgressIndicator();
             },
           ),
